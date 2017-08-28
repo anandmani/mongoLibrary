@@ -3,12 +3,35 @@ var ObjectID = require('mongodb').ObjectID
 var router = express.Router();
 var moment = require('moment')
 
+const pageSize = 20
+
 router.get('/', function (req, res, next) {
     var db = require('../app.js').db
     const issueDate = moment(Number(req.query.date)).startOf('day').toDate()
-    db.collection('issues').find({ issueDate }).toArray((err, r) => {
-        res.send(r)
-    })
+    if (req.query.page) {
+        let data = null
+        let count = null
+        const cursor = db.collection('issues').find({ issueDate }).skip((req.query.page - 1) * pageSize).limit(pageSize)
+        Promise.all([
+            new Promise((resolve, reject) => {
+                cursor.toArray((err, r) => {
+                    data = r
+                    resolve()
+                })
+            }),
+            cursor.count()
+                .then((r) => count = r)
+        ])
+            .then(() => res.send({
+                count,
+                data
+            }))
+    }
+    else {
+        db.collection('issues').find({ issueDate }).toArray((err, r) => {
+            res.send(r)
+        })
+    }
 });
 
 
@@ -56,7 +79,7 @@ router.post('/', function (req, res, next) {
         })
     })
 
-    Promise.all([promise1, promise2, promise3]).then(() => res.send('done'))
+    Promise.all([promise1, promise2, promise3]).then(() => res.send({}))
 
 })
 

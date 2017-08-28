@@ -2,6 +2,8 @@ var express = require('express');
 var ObjectID = require('mongodb').ObjectID
 var router = express.Router();
 
+const pageSize = 1
+
 router.get('/', function (req, res, next) {
     var db = require('../app.js').db
     const findObj = {}
@@ -17,9 +19,34 @@ router.get('/', function (req, res, next) {
         const categoryRegex = new RegExp(req.query.category, 'i')
         findObj.categories = { $regex: categoryRegex }
     }
-    db.collection('books').find(findObj).toArray((err, r) => {
-        res.send(r)
-    })
+
+    if (req.query.page) {
+        const cursor = db.collection('books').find(findObj).skip((req.query.page - 1) * pageSize).limit(pageSize)
+        let data = null
+        let count = null
+        Promise.all([
+            new Promise((resolve, reject) => {
+                cursor.toArray((err, r) => {
+                    data = r
+                    resolve()
+                })
+            }),
+            cursor.count()
+                .then((r) => {
+                    count = r
+                })
+        ])
+            .then(() => {
+                console.log("data", data, count)
+                res.send({ count, data })
+            })
+    }
+    else {
+        db.collection('books').find(findObj).toArray((err, r) => {
+            res.send(r)
+        })
+    }
+
 });
 
 router.post('/', function (req, res, next) {
