@@ -5,20 +5,61 @@ var moment = require('moment')
 
 const pageSize = 20
 
+getIssues = (db, cursor) => {
+    let issues = null
+    let books = null
+    let members = null
+
+    return new Promise((resolve, reject) => {
+        cursor.toArray((err, r) => {
+            issues = r
+            resolve()
+        })
+    })
+        .then(() => Promise.all([
+            Promise.all(
+                issues.map((issue, index) => {
+                    return new Promise((resolve, reject) => {
+                        db.collection('books').findOne({ _id: ObjectID(issue.bookId) }, function (err, r) {
+                            resolve(r)
+                        })
+                    })
+                })
+            )
+                .then((r) => {
+                    r.forEach((book, index) => {
+                        issues[index].book = book
+                    })
+                }),
+            Promise.all(
+                issues.map((issue, index) => {
+                    return new Promise((resolve, reject) => {
+                        db.collection('members').findOne({ _id: ObjectID(issue.memberId) }, function (err, r) {
+                            resolve(r)
+                        })
+                    })
+                })
+            )
+                .then((r) => {
+                    r.forEach((member, index) => {
+                        issues[index].member = member
+                    })
+                })
+        ]))
+        .then(() => issues)
+}
+
 router.get('/', function (req, res, next) {
     var db = require('../app.js').db
     const issueDate = moment(Number(req.query.date)).startOf('day').toDate()
     if (req.query.page) {
         let data = null
         let count = null
-        const cursor = db.collection('issues').find({ issueDate }).skip((req.query.page - 1) * pageSize).limit(pageSize)
+        const cursor = db.collection('issues').find({ issueDate }).sort({ status: 1 }).skip((req.query.page - 1) * pageSize).limit(pageSize)
         Promise.all([
-            new Promise((resolve, reject) => {
-                cursor.toArray((err, r) => {
-                    data = r
-                    resolve()
-                })
-            }),
+            getIssues(db, cursor)
+                .then((issues) => data = issues)
+            ,
             cursor.count()
                 .then((r) => count = r)
         ])
@@ -28,11 +69,12 @@ router.get('/', function (req, res, next) {
             }))
     }
     else {
-        db.collection('issues').find({ issueDate }).toArray((err, r) => {
-            res.send(r)
-        })
+        const cursor = db.collection('issues').find({ issueDate })
+        getIssues(db, cursor)
+            .then((issues) => res.send(issues))
     }
-});
+})
+
 
 
 router.post('/', function (req, res, next) {

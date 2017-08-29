@@ -2,7 +2,7 @@ var express = require('express');
 var ObjectID = require('mongodb').ObjectID
 var router = express.Router();
 
-const pageSize = 1
+const pageSize = 20
 
 router.get('/', function (req, res, next) {
     var db = require('../app.js').db
@@ -37,7 +37,6 @@ router.get('/', function (req, res, next) {
                 })
         ])
             .then(() => {
-                console.log("data", data, count)
                 res.send({ count, data })
             })
     }

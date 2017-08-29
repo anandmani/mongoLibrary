@@ -11,7 +11,7 @@ router.get('/', function (req, res, next) {
     if (req.query.page) {
         let data = null
         let count = null
-        const cursor = db.collection('issues').find({ returnDate }).skip((req.query.page - 1) * pageSize).limit(pageSize)
+        const cursor = db.collection('issues').find({ returnDate }).sort({ status: 1 }).skip((req.query.page - 1) * pageSize).limit(pageSize)
         Promise.all([
             new Promise((resolve, reject) => {
                 cursor.toArray((err, r) => {
