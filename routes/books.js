@@ -4,6 +4,35 @@ var router = express.Router();
 
 const pageSize = 20
 
+const getData = (db, cursor) => {
+    let books = null
+    let issues = null
+    return new Promise((resolve, reject) => {
+        cursor.toArray((err, r) => {
+            books = r
+            resolve()
+        })
+    })
+        .then(() => {
+            return Promise.all(
+                books.map((book, index) => {
+                    return new Promise((resolve, reject) => {
+                        db.collection('issues').find({ bookId: book._id.toString(), status: 'issued' }).toArray((err, r) => {
+                            resolve(r)
+                        })
+                    })
+                })
+            )
+        })
+        .then((r) => {
+            r.forEach((issues, index) => {
+                books[index].issues = issues
+            })
+            // res.send(books)
+            return books
+        })
+}
+
 router.get('/', function (req, res, next) {
     var db = require('../app.js').db
     const findObj = {}
@@ -25,12 +54,9 @@ router.get('/', function (req, res, next) {
         let data = null
         let count = null
         Promise.all([
-            new Promise((resolve, reject) => {
-                cursor.toArray((err, r) => {
-                    data = r
-                    resolve()
-                })
-            }),
+            getData(db, cursor)
+                .then((books) => data = books)
+            ,
             cursor.count()
                 .then((r) => {
                     count = r
@@ -41,9 +67,9 @@ router.get('/', function (req, res, next) {
             })
     }
     else {
-        db.collection('books').find(findObj).toArray((err, r) => {
-            res.send(r)
-        })
+        const cursor = db.collection('books').find(findObj)
+        getData(db, cursor)
+            .then((books) => res.send(books))
     }
 
 });

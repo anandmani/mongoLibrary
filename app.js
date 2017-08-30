@@ -26,6 +26,12 @@ module.exports.db = null
 MongoClient.connect(url, function (err, db) {
   assert.equal(null, err);
   console.log("Connected successfully to server");
+  db.collection('books').ensureIndex("name", () => console.log("Books are indexed on name"))
+  db.collection('members').ensureIndex("name", () => console.log("Members are indexed on name"))
+  db.collection('issues').ensureIndex('issueDate', () => console.log("Issues are indexed on issueDate"))
+  db.collection('issues').ensureIndex('returnDate', () => console.log("Issues are indexed on returnDate"))
+  db.collection('issues').ensureIndex({ bookId: 1, status: 1 }, () => console.log("Issues are indexed on bookId and status"))
+  db.collection('issues').ensureIndex({ memberId: 1, status: 1 }, () => console.log("Issues are indexed on memberId and status"))
   module.exports.db = db
   // db.close();
 });
