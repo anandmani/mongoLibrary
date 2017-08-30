@@ -1,0 +1,41 @@
+book {
+    id
+    name
+    authors: []
+    categories: []
+}
+Indexed on: name
+
+member{
+    id
+    name
+    mobile
+}
+Indexed on: name
+
+issue{
+    id
+    bookId
+    memberId
+    status
+    issueDate
+    returnDate
+}
+Indexed on: 
+    issueDate
+    returnDate
+    bookId & status
+    memberId & status
+
+
+Shortcomings: 
+    List issues by date : we only get bookId and memberId. Need to read db again for book name, member name
+    List books by name: we need to read db again for issues of the book, which returns us only memberId and no name
+    List members by name: we need to read db again for issues made by person, which returns us only bookId and no name
+
+Pros: 
+    Storing issues in a seperate table and not in books because issues can be infinitely growing. We don't delete issues, we make status = returned 
+
+Enhancements: 
+    Store memberName, bookName in issues
+    Store issues (status = issued) in book, member
